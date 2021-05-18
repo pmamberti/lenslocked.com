@@ -13,6 +13,9 @@ func handlerFunc(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(
 			w,
 			"To get in touch, please email to <a href=\"mailto:contact@example.com\">contact@example.com</a>.")
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, "<h1>We could not find your page.</h1> <p>If you keep seeeing this, send us an email.</p>")
 	}
 }
 
