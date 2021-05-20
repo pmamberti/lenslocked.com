@@ -20,9 +20,18 @@ func contact(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
+func faq(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprint(
+		w,
+		"This is the an FAQ <li><p>The first question</p></li>",
+	)
+}
+
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", home)
 	r.HandleFunc("/contact", contact)
+	r.HandleFunc("/faq", faq)
 	http.ListenAndServe(":3000", r)
 }
