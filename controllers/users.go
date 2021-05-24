@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 
 	"lenslocked.com/views"
@@ -20,5 +21,7 @@ type Users struct {
 }
 
 func (u *Users) New(w http.ResponseWriter, r *http.Request) {
-	u.NewView.Render(w, nil)
+	if err := u.NewView.Render(w, nil); err != nil {
+		log.Fatal(err)
+	}
 }
