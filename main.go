@@ -30,6 +30,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer us.Close()
+	// us.DestructiveReset()
 	us.AutoMigrate()
 
 	staticC := controllers.NewStatic()
