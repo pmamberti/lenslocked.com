@@ -16,9 +16,12 @@
 {{define "signupForm"}}
     <form action="/signup" method="POST">
         <div class="mb-3">
+            <label for="name" class="form-label">Name</label>
+            <input type="text" name="name" class="form-control" id="name" placeholder="your full name">
+        </div>
+        <div class="mb-3">
             <label for="email" class="form-label">Email address</label>
-            <input type="email" name="email" class="form-control" id="email" aria-describedby="emailHelp">
-        <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+            <input type="email" name="email" class="form-control" id="email" placeholder="email@example.com">
         </div>
         <div class="mb-3">
             <label for="password" class="form-label">Password</label>
