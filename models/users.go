@@ -15,6 +15,10 @@ var (
 	ErrNotFound = errors.New("models: resource not found")
 	// Err InvalidID returns when an invalid ID is provided.
 	ErrInvalidID = errors.New("models: ID provided is invalid")
+	// ErrInvalidPassword returns when the password is invalid
+	ErrInvalidPassword = errors.New(
+		"models: incorrect password provided",
+	)
 )
 
 const userPwPepper = "secret-random-string"
@@ -87,6 +91,32 @@ func (us *UserService) ByEmail(email string) (*User, error) {
 	db := us.db.Where("email = ?", email)
 	err := first(db, &user)
 	return &user, err
+}
+
+// Authenticate can be used to authenticate a User with a provided
+// email address and password.
+func (us *UserService) Authenticate(
+	email, password string,
+) (*User, error) {
+	foundUser, err := us.ByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(foundUser.PasswordHash),
+		[]byte(password+userPwPepper),
+	)
+	if err != nil {
+		switch err {
+		case bcrypt.ErrMismatchedHashAndPassword:
+			return nil, ErrInvalidPassword
+		default:
+			return nil, err
+		}
+	}
+
+	return foundUser, nil
 }
 
 // Create creates the provided user and the backfill data

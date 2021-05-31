@@ -41,6 +41,8 @@ func main() {
 	r.Handle("/contact", staticC.Contact).Methods("GET")
 	r.HandleFunc("/signup", usersC.New).Methods("GET")
 	r.HandleFunc("/signup", usersC.Create).Methods("POST")
+	r.Handle("/login", usersC.LoginView).Methods("GET")
+	r.HandleFunc("/login", usersC.Login).Methods("POST")
 	fmt.Println("Starting server on http://localhost:3000 ...")
 	http.ListenAndServe(":3000", r)
 }
