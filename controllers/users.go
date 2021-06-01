@@ -59,8 +59,8 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	fmt.Fprintln(w, user)
+	SignIn(w, &user)
+	http.Redirect(w, r, "/cookietest", http.StatusFound)
 }
 
 type LoginForm struct {
@@ -89,12 +89,16 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	SignIn(w, user)
+	http.Redirect(w, r, "/cookietest", http.StatusFound)
+}
+
+func SignIn(w http.ResponseWriter, user *models.User) {
 	cookie := http.Cookie{
 		Name:  "email",
 		Value: user.Email,
 	}
 	http.SetCookie(w, &cookie)
-	fmt.Fprintln(w, user)
 }
 
 func (u *Users) CookieTest(w http.ResponseWriter, r *http.Request) {
