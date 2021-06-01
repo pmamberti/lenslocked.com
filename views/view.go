@@ -1,7 +1,6 @@
 package views
 
 import (
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -15,11 +14,8 @@ const (
 )
 
 func NewView(layout string, files ...string) *View {
-	fmt.Println(files)
 	addTemplatePath(files)
-	fmt.Println(files)
 	addTemplateExt(files)
-	fmt.Println(files)
 	files = append(
 		files, layoutFiles()...)
 
@@ -72,7 +68,6 @@ func addTemplatePath(files []string) {
 	for i, f := range files {
 		files[i] = TemplateDir + f
 	}
-
 }
 
 // addTemplatePath takes in a slice of strings, representing file
