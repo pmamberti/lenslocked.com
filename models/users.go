@@ -7,6 +7,8 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"golang.org/x/crypto/bcrypt"
+	"lenslocked.com/hash"
+	"lenslocked.com/rand"
 )
 
 var (
@@ -21,10 +23,14 @@ var (
 	)
 )
 
-const userPwPepper = "secret-random-string"
+const (
+	userPwPepper  = "secret-random-string"
+	hmacSecretKey = "secret-hmac-key"
+)
 
 type UserService struct {
-	db *gorm.DB
+	db   *gorm.DB
+	hmac hash.HMAC
 }
 
 func NewUserService(connectionInfo string) (*UserService, error) {
@@ -33,8 +39,10 @@ func NewUserService(connectionInfo string) (*UserService, error) {
 		log.Fatal(err)
 	}
 	db.LogMode(true)
+	hmac := hash.NewHMAC(hmacSecretKey)
 	return &UserService{
-		db: db,
+		db:   db,
+		hmac: hmac,
 	}, nil
 }
 
@@ -93,6 +101,23 @@ func (us *UserService) ByEmail(email string) (*User, error) {
 	return &user, err
 }
 
+// ByRemember looks up a user by a given Remember Token. This method
+// will take care of hasing the token for us
+// Errors are the same as ByEmail
+func (us *UserService) ByRemember(token string) (*User, error) {
+	var user User
+	rememberHash := us.hmac.Hash(token)
+
+	err := first(
+		us.db.Where("remember_hash = ?", rememberHash),
+		&user,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 // Authenticate can be used to authenticate a User with a provided
 // email address and password.
 func (us *UserService) Authenticate(
@@ -132,12 +157,25 @@ func (us *UserService) Create(user *User) error {
 	}
 	user.PasswordHash = string(hashedBytes)
 	user.Password = ""
+
+	if user.Remember == "" {
+		token, err := rand.RememberToken()
+		if err != nil {
+			return err
+		}
+		user.Remember = token
+	}
+	user.RememberHash = us.hmac.Hash(user.Remember)
+
 	return us.db.Create(user).Error
 }
 
 // Update will update the proviced user with all the data
 // in the provided user object.
 func (us *UserService) Update(user *User) error {
+	if user.Remember != "" {
+		user.RememberHash = us.hmac.Hash(user.Remember)
+	}
 	return us.db.Save(user).Error
 }
 
@@ -160,4 +198,6 @@ type User struct {
 	Email        string `gorm:"not null;unique_index"`
 	Password     string `gorm:"-"`
 	PasswordHash string `gorm:"not null"`
+	Remember     string `gorm:"-"`
+	RememberHash string `gorm:"not null;unique_index"`
 }
