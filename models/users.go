@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"log"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -136,7 +137,8 @@ func (uv *userValidator) Create(user *User) error {
 	err := runUserValFuncs(user,
 		uv.bcryptPassword,
 		uv.setRememberIfUnset,
-		uv.hmacRemember)
+		uv.hmacRemember,
+		uv.normalizeEmail)
 	if err != nil {
 		return err
 	}
@@ -146,9 +148,11 @@ func (uv *userValidator) Create(user *User) error {
 
 // Update will hash a remember token if it is provided
 func (uv *userValidator) Update(user *User) error {
-	if err := runUserValFuncs(user,
+	err := runUserValFuncs(user,
 		uv.bcryptPassword,
-		uv.hmacRemember); err != nil {
+		uv.hmacRemember,
+		uv.normalizeEmail)
+	if err != nil {
 		return err
 	}
 
@@ -164,6 +168,12 @@ func (uv *userValidator) Delete(id uint) error {
 		return err
 	}
 	return uv.UserDB.Delete(id)
+}
+
+func (uv *userValidator) normalizeEmail(user *User) error {
+	user.Email = strings.ToLower(user.Email)
+	user.Email = strings.TrimSpace(user.Email)
+	return nil
 }
 
 type userValFunc func(*User) error
@@ -222,6 +232,19 @@ func (uv *userValidator) idGreaterThan(n uint) userValFunc {
 		}
 		return nil
 	})
+}
+
+// ByEmail will normalize the email before calling ByEmail by the Email
+// field.
+func (uv *userValidator) ByEmail(email string) (*User, error) {
+	user := User{
+		Email: email,
+	}
+	err := runUserValFuncs(&user, uv.normalizeEmail)
+	if err != nil {
+		return nil, err
+	}
+	return uv.UserDB.ByEmail(user.Email)
 }
 
 var _ UserDB = &userGorm{}
