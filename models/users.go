@@ -26,15 +26,15 @@ var (
 
 	// ErrEmailRequired is returned when an email address is not provide
 	// when creating a user
-	ErrEmailRequired = errors.New("email address is required")
+	ErrEmailRequired = errors.New("models: email address is required")
 
 	// ErrEmailInvalid is returned when an email address
 	// does not match any of our requirements
-	ErrEmailInvalid = errors.New("email address is invalid")
+	ErrEmailInvalid = errors.New("models: email address is invalid")
 
 	// ErrEmailTaken is returned when an update() or create() is
 	// attempted with an existing email address.
-	ErrEmailTaken = errors.New("email is already taken")
+	ErrEmailTaken = errors.New("models: email is already taken")
 
 	// ErrPasswordTooShort is returned when the password length
 	// does not match the required minimum.
@@ -42,6 +42,14 @@ var (
 
 	// ErrPasswordRequired is returned when a password is not provided.
 	ErrPasswordRequired = errors.New("models: password is required")
+
+	// ErrRememberTooShort is returned if the remember token is not
+	// at least 32 bytes
+	ErrRememberTooShort = errors.New("models: remember token must be 32 bytes or longer")
+
+	// ErrRememberHashRequired is returned when a create or update is
+	// attempter without a user remember token hash
+	ErrRememberHashRequired = errors.New("models: remember required")
 )
 
 const (
@@ -172,7 +180,9 @@ func (uv *userValidator) Create(user *User) error {
 		uv.bcryptPassword,
 		uv.passwordHashRequired,
 		uv.setRememberIfUnset,
+		uv.rememberMinBytes,
 		uv.hmacRemember,
+		uv.rememberHashRequired,
 		uv.requireEmail,
 		uv.normalizeEmail,
 		uv.emailFormat,
@@ -190,7 +200,9 @@ func (uv *userValidator) Update(user *User) error {
 		uv.passwordMinLength,
 		uv.bcryptPassword,
 		uv.passwordHashRequired,
+		uv.rememberMinBytes,
 		uv.hmacRemember,
+		uv.rememberHashRequired,
 		uv.normalizeEmail,
 		uv.requireEmail,
 		uv.emailFormat,
@@ -299,6 +311,27 @@ func (uv *userValidator) setRememberIfUnset(user *User) error {
 		return err
 	}
 	user.Remember = token
+	return nil
+}
+
+func (uv *userValidator) rememberMinBytes(user *User) error {
+	if user.Remember == "" {
+		return nil
+	}
+	n, err := rand.NBytes(user.Remember)
+	if err != nil {
+		return err
+	}
+	if n < 32 {
+		return ErrRememberTooShort
+	}
+	return nil
+}
+
+func (uv *userValidator) rememberHashRequired(user *User) error {
+	if user.RememberHash == "" {
+		return ErrRememberHashRequired
+	}
 	return nil
 }
 
