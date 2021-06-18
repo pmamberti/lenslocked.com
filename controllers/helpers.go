@@ -15,6 +15,5 @@ func ParseForm(r *http.Request, dst interface{}) error {
 	if err := dec.Decode(dst, r.PostForm); err != nil {
 		return err
 	}
-
 	return nil
 }
