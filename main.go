@@ -25,16 +25,17 @@ func main() {
 		user,
 		db_name,
 	)
-	us, err := models.NewUserService(dsn)
+	services, err := models.NewServices(dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer us.Close()
+	// TODO
+	// defer us.Close()
 	// us.DestructiveReset()
-	us.AutoMigrate()
+	// us.AutoMigrate()
 
 	staticC := controllers.NewStatic()
-	usersC := controllers.NewUsers(us)
+	usersC := controllers.NewUsers(services.User)
 
 	r := mux.NewRouter()
 	r.Handle("/", staticC.Home).Methods("GET")
