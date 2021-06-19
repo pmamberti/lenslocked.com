@@ -1,7 +1,9 @@
 package views
 
 import (
+	"bytes"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -36,13 +38,11 @@ type View struct {
 }
 
 func (v *View) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if err := v.Render(w, nil); err != nil {
-		log.Fatal(err)
-	}
+	v.Render(w, nil)
 }
 
 // Render is used to render the view with the predefined layout
-func (v *View) Render(w http.ResponseWriter, data interface{}) error {
+func (v *View) Render(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "text/html")
 	switch data.(type) {
 	case Data:
@@ -52,7 +52,17 @@ func (v *View) Render(w http.ResponseWriter, data interface{}) error {
 			Yield: data,
 		}
 	}
-	return v.Template.ExecuteTemplate(w, v.Layout, data)
+	var buf bytes.Buffer
+	err := v.Template.ExecuteTemplate(&buf, v.Layout, data)
+	if err != nil {
+		http.Error(
+			w,
+			"Something went wrong rendering template. If problem persists, contact us at email@example.com.",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+	io.Copy(w, &buf)
 }
 
 // layoutFiles returns a slice of strings representing

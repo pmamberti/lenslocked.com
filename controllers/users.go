@@ -31,10 +31,7 @@ type Users struct {
 // account.
 // GET /signup
 func (u *Users) New(w http.ResponseWriter, r *http.Request) {
-	err := u.NewView.Render(w, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	u.NewView.Render(w, nil)
 }
 
 type SignupForm struct {
