@@ -43,6 +43,7 @@ func (g *Galleries) Create(w http.ResponseWriter, r *http.Request) {
 	user := context.User(r.Context())
 	if user == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
+		return
 	}
 	fmt.Println("Create got the user: ", user)
 	gallery := models.Gallery{
