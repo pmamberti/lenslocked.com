@@ -74,6 +74,12 @@ func main() {
 	).Methods(
 		"POST",
 	)
+	r.HandleFunc(
+		"/galleries/{id:[0-9]+}/delete",
+		requireUserMw.ApplyFn(galleriesC.Delete),
+	).Methods(
+		"POST",
+	)
 
 	fmt.Println("Starting server on http://localhost:3000 ...")
 	http.ListenAndServe(":3000", r)
