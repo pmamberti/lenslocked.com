@@ -1,2 +1,5 @@
 [*.{py,go}]
+indent_size = 4
+
+[*.gohtml]
 indent_size = 2
