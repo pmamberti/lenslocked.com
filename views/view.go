@@ -64,6 +64,7 @@ func (v *View) Render(w http.ResponseWriter, r *http.Request, data interface{}) 
 			"Something went wrong rendering template. If problem persists, contact us at email@example.com.",
 			http.StatusInternalServerError,
 		)
+		log.Println(err.Error())
 		return
 	}
 	io.Copy(w, &buf)
