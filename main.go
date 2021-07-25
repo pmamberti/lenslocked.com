@@ -5,10 +5,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 	"lenslocked.com/controllers"
 	"lenslocked.com/middleware"
 	"lenslocked.com/models"
+	"lenslocked.com/rand"
 )
 
 const (
@@ -40,6 +42,13 @@ func main() {
 	usersC := controllers.NewUsers(services.User)
 	galleriesC := controllers.NewGalleries(services.Gallery, services.Image, r)
 
+	// TODO: Update this to be a config variable
+	b, err := rand.Bytes(32)
+	if err != nil {
+		log.Println(err)
+	}
+	// must(err)
+	csrfMw := csrf.Protect(b, csrf.Secure(true))
 	userMw := middleware.User{
 		UserService: services.User,
 	}
@@ -108,5 +117,5 @@ func main() {
 		Methods("POST")
 
 	fmt.Println("Starting server on http://localhost:3000 ...")
-	http.ListenAndServe(":3000", userMw.Apply(r))
+	http.ListenAndServe(":3000", csrfMw(userMw.Apply(r)))
 }
