@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,26 +14,25 @@ import (
 	"lenslocked.com/rand"
 )
 
-const (
-	host    = "localhost"
-	port    = 5432
-	user    = "piero"
-	db_name = "lenslocked_dev"
-)
-
 func main() {
-	dsn := fmt.Sprintf(
-		"host=%s port=%d user=%s dbname=%s sslmode=disable",
-		host,
-		port,
-		user,
-		db_name,
+	boolPtr := flag.Bool(
+		"prod",
+		false,
+		"Set to true in production. This ensures that a .config file is present when the application starts.",
 	)
-	services, err := models.NewServices(dsn)
+	flag.Parse()
+	cfg := LoadConfig(*boolPtr)
+	dbCfg := cfg.Database
+	services, err := models.NewServices(
+		models.WithGorm(dbCfg.Dialect(), dbCfg.Connection()),
+		models.WithLogMode(!cfg.IsProd()),
+		models.WithUser(cfg.Pepper, cfg.HMACKey),
+		models.WithGallery(),
+		models.WithImage(),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	// TODO
 	defer services.Close()
 	// services.DestructiveReset()
 	services.AutoMigrate()
@@ -42,13 +42,13 @@ func main() {
 	usersC := controllers.NewUsers(services.User)
 	galleriesC := controllers.NewGalleries(services.Gallery, services.Image, r)
 
-	// TODO: Update this to be a config variable
 	b, err := rand.Bytes(32)
 	if err != nil {
 		log.Println(err)
 	}
 	// must(err)
-	csrfMw := csrf.Protect(b, csrf.Secure(true))
+
+	csrfMw := csrf.Protect(b, csrf.Secure(cfg.IsProd()))
 	userMw := middleware.User{
 		UserService: services.User,
 	}
@@ -116,6 +116,7 @@ func main() {
 		requireUserMw.ApplyFn(galleriesC.ImageDelete)).
 		Methods("POST")
 
-	fmt.Println("Starting server on http://localhost:3000 ...")
-	http.ListenAndServe(":3000", csrfMw(userMw.Apply(r)))
+	// TODO: Config this
+	fmt.Printf("Starting server on http://localhost:%d ...", cfg.Port)
+	http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), csrfMw(userMw.Apply(r)))
 }

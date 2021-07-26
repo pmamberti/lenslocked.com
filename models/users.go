@@ -5,15 +5,9 @@ import (
 	"strings"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"golang.org/x/crypto/bcrypt"
 	"lenslocked.com/hash"
 	"lenslocked.com/rand"
-)
-
-const (
-	userPwPepper  = "secret-random-string"
-	hmacSecretKey = "secret-hmac-key"
 )
 
 // User represents the user model stored in our DB.
@@ -70,6 +64,7 @@ type userGorm struct {
 
 type userService struct {
 	UserDB
+	pepper string
 }
 
 // Authenticate can be used to authenticate a User with a provided
@@ -84,7 +79,7 @@ func (us *userService) Authenticate(
 
 	err = bcrypt.CompareHashAndPassword(
 		[]byte(foundUser.PasswordHash),
-		[]byte(password+userPwPepper),
+		[]byte(password+us.pepper),
 	)
 	if err != nil {
 		switch err {
@@ -99,11 +94,12 @@ func (us *userService) Authenticate(
 	return foundUser, nil
 }
 
-func newUserValidator(udb UserDB, hmac hash.HMAC) *userValidator {
+func newUserValidator(udb UserDB, hmac hash.HMAC, pepper string) *userValidator {
 	return &userValidator{
 		UserDB:     udb,
 		hmac:       hmac,
 		emailRegex: regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,16}$`),
+		pepper:     pepper,
 	}
 }
 
@@ -111,6 +107,7 @@ type userValidator struct {
 	UserDB
 	hmac       hash.HMAC
 	emailRegex *regexp.Regexp
+	pepper     string
 }
 
 // ByRemember will hash the remember token and then call
@@ -235,7 +232,7 @@ func (uv *userValidator) bcryptPassword(user *User) error {
 		return nil
 	}
 
-	pwBytes := []byte(user.Password + userPwPepper)
+	pwBytes := []byte(user.Password + uv.pepper)
 	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -335,12 +332,13 @@ func (uv *userValidator) passwordHashRequired(user *User) error {
 
 var _ UserDB = &userGorm{}
 
-func NewUserService(db *gorm.DB) UserService {
+func NewUserService(db *gorm.DB, pepper, hmacKey string) UserService {
 	ug := &userGorm{db}
-	hmac := hash.NewHMAC(hmacSecretKey)
-	uv := newUserValidator(ug, hmac)
+	hmac := hash.NewHMAC(hmacKey)
+	uv := newUserValidator(ug, hmac, pepper)
 	return &userService{
 		UserDB: uv,
+		pepper: pepper,
 	}
 }
 
